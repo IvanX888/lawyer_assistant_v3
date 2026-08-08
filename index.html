@@ -4,362 +4,392 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Юридический ИИ-Ассистент</title>
+<script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js"></script>
 <style>
-:root {
-  --bg: #0f172a;
-  --surface: #1e293b;
-  --surface2: #334155;
-  --text: #f1f5f9;
-  --text2: #94a3b8;
-  --accent: #3b82f6;
-  --accent2: #60a5fa;
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --border: #475569;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-.header {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 1rem 1.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-.header h1 { font-size: 1.25rem; font-weight: 700; color: var(--accent2); }
-.header .subtitle { font-size: 0.8rem; color: var(--text2); }
-.header-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-.btn {
-  background: var(--surface2);
-  color: var(--text);
-  border: 1px solid var(--border);
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: all 0.2s;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-.btn:hover { background: var(--border); }
-.btn.primary { background: var(--accent); border-color: var(--accent); }
-.btn.primary:hover { background: var(--accent2); }
-.btn.success { background: var(--success); border-color: var(--success); color: #fff; }
-.btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.main { flex: 1; display: flex; overflow: hidden; }
-.sidebar {
-  width: 280px;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  transition: transform 0.3s;
-}
-.sidebar-header {
-  padding: 1rem;
-  border-bottom: 1px solid var(--border);
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-.sidebar-content { flex: 1; overflow-y: auto; padding: 0.5rem; }
-.history-item {
-  padding: 0.6rem 0.8rem;
-  border-radius: 0.4rem;
-  cursor: pointer;
-  font-size: 0.85rem;
-  margin-bottom: 0.3rem;
-  transition: background 0.2s;
-  border-left: 3px solid transparent;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.history-item:hover { background: var(--surface2); }
-.history-item.active { background: var(--surface2); border-left-color: var(--accent); }
-.chat-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-.message {
-  max-width: 85%;
-  padding: 1rem 1.2rem;
-  border-radius: 1rem;
-  line-height: 1.6;
-  font-size: 0.95rem;
-  animation: fadeIn 0.3s ease;
-}
-@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-.message.user {
-  align-self: flex-end;
-  background: var(--accent);
-  color: #fff;
-  border-bottom-right-radius: 0.25rem;
-}
-.message.bot {
-  align-self: flex-start;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-bottom-left-radius: 0.25rem;
-}
-.message.bot h3 { color: var(--accent2); margin-bottom: 0.5rem; font-size: 1rem; }
-.message.bot .source { font-size: 0.8rem; color: var(--text2); margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
-.message.bot .source-tag {
-  display: inline-block;
-  background: var(--surface2);
-  padding: 0.15rem 0.5rem;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
-  margin-right: 0.3rem;
-  margin-bottom: 0.2rem;
-  cursor: pointer;
-}
-.message.bot .source-tag:hover { background: var(--border); }
-.message.bot .priority-badge {
-  display: inline-block;
-  width: 8px; height: 8px; border-radius: 50%;
-  margin-right: 0.3rem;
-}
-.priority-1 { background: #fbbf24; }
-.priority-2 { background: #f97316; }
-.priority-3 { background: #3b82f6; }
-.priority-4 { background: #22c55e; }
-.priority-5 { background: #a855f7; }
-.input-area {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid var(--border);
-  background: var(--surface);
-}
-.input-box {
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-end;
-}
-.input-box textarea {
-  flex: 1;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
-  padding: 0.75rem 1rem;
-  color: var(--text);
-  font-size: 0.95rem;
-  resize: none;
-  min-height: 48px;
-  max-height: 150px;
-  font-family: inherit;
-  outline: none;
-}
-.input-box textarea:focus { border-color: var(--accent); }
-.input-box .btn { height: 48px; padding: 0 1.2rem; }
-.loading-indicator {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: var(--surface);
-  border-radius: 0.5rem;
-  font-size: 0.85rem;
-  color: var(--text2);
-  align-self: flex-start;
-}
-.spinner {
-  width: 16px; height: 16px;
-  border: 2px solid var(--border);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.modal-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,0.7);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-}
-.modal-overlay.active { display: flex; }
-.modal {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 1rem;
-  max-width: 700px;
-  width: 100%;
-  max-height: 85vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  animation: modalIn 0.3s ease;
-}
-@keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-.modal-header {
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.modal-header h2 { font-size: 1.1rem; }
-.modal-close {
-  background: none; border: none; color: var(--text2);
-  font-size: 1.5rem; cursor: pointer; line-height: 1;
-}
-.modal-close:hover { color: var(--text); }
-.modal-body {
-  padding: 1.5rem;
-  overflow-y: auto;
-  flex: 1;
-}
-.modal-body p { margin-bottom: 0.75rem; line-height: 1.6; }
-.modal-body .field { margin-bottom: 1rem; }
-.modal-body label { display: block; font-size: 0.85rem; color: var(--text2); margin-bottom: 0.3rem; }
-.modal-body input, .modal-body textarea, .modal-body select {
-  width: 100%;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  padding: 0.6rem 0.8rem;
-  color: var(--text);
-  font-family: inherit;
-  font-size: 0.9rem;
-  outline: none;
-}
-.modal-body input:focus, .modal-body textarea:focus, .modal-body select:focus { border-color: var(--accent); }
-.modal-body textarea { min-height: 100px; resize: vertical; }
-.modal-footer {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid var(--border);
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-.knowledge-list { display: flex; flex-direction: column; gap: 0.5rem; }
-.knowledge-item {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  padding: 0.75rem 1rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-.knowledge-item:hover { border-color: var(--accent); }
-.knowledge-item .k-title { font-weight: 500; flex: 1; }
-.knowledge-item .k-type { font-size: 0.75rem; color: var(--text2); background: var(--surface2); padding: 0.15rem 0.4rem; border-radius: 0.25rem; }
-.welcome-screen {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  text-align: center;
-  padding: 2rem;
-  gap: 1.5rem;
-}
-.welcome-screen h2 { font-size: 1.5rem; color: var(--accent2); }
-.welcome-screen p { color: var(--text2); max-width: 500px; }
-.quick-buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
-.quick-btn {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--text2);
-  padding: 0.5rem 1rem;
-  border-radius: 2rem;
-  cursor: pointer;
-  font-size: 0.85rem;
-  transition: all 0.2s;
-}
-.quick-btn:hover { background: var(--surface2); color: var(--text); border-color: var(--accent); }
-.status-bar {
-  padding: 0.5rem 1.5rem;
-  background: var(--bg);
-  border-top: 1px solid var(--border);
-  font-size: 0.8rem;
-  color: var(--text2);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.status-bar .model-status { display: flex; align-items: center; gap: 0.4rem; }
-.status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
-.status-dot.ready { background: var(--success); }
-.status-dot.loading { background: var(--warning); animation: pulse 1.5s infinite; }
-@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-.mobile-toggle {
-  display: none;
-  background: none;
-  border: none;
-  color: var(--text);
-  font-size: 1.25rem;
-  cursor: pointer;
-}
-@media (max-width: 768px) {
-  .sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 100; transform: translateX(-100%); }
-  .sidebar.open { transform: translateX(0); }
-  .mobile-toggle { display: block; }
-  .message { max-width: 95%; }
-}
-.empty-state { text-align: center; color: var(--text2); padding: 3rem; }
-.toast {
-  position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  padding: 0.75rem 1.25rem;
-  border-radius: 0.5rem;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-  z-index: 2000;
-  animation: toastIn 0.3s ease;
-  font-size: 0.9rem;
-}
-@keyframes toastIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  :root {
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --surface2: #334155;
+    --text: #f1f5f9;
+    --text2: #94a3b8;
+    --accent: #3b82f6;
+    --accent2: #60a5fa;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --border: #475569;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .header h1 { font-size: 1.25rem; font-weight: 700; color: var(--accent2); }
+  .header .subtitle { font-size: 0.8rem; color: var(--text2); }
+  .header-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .btn {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .btn:hover { background: var(--border); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); }
+  .btn.primary:hover { background: var(--accent2); }
+  .btn.success { background: var(--success); border-color: var(--success); color: #fff; }
+  .btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .main { flex: 1; display: flex; overflow: hidden; }
+  .sidebar {
+    width: 280px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s;
+  }
+  .sidebar-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  .sidebar-content { flex: 1; overflow-y: auto; padding: 0.5rem; }
+  .history-item {
+    padding: 0.6rem 0.8rem;
+    border-radius: 0.4rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    margin-bottom: 0.3rem;
+    transition: background 0.2s;
+    border-left: 3px solid transparent;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .history-item:hover { background: var(--surface2); }
+  .history-item.active { background: var(--surface2); border-left-color: var(--accent); }
+
+  .chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .message {
+    max-width: 85%;
+    padding: 1rem 1.2rem;
+    border-radius: 1rem;
+    line-height: 1.6;
+    font-size: 0.95rem;
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .message.user {
+    align-self: flex-end;
+    background: var(--accent);
+    color: #fff;
+    border-bottom-right-radius: 0.25rem;
+  }
+  .message.bot {
+    align-self: flex-start;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 0.25rem;
+  }
+  .message.bot h3 { color: var(--accent2); margin-bottom: 0.5rem; font-size: 1rem; }
+  .message.bot .source { font-size: 0.8rem; color: var(--text2); margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+  .message.bot .source-tag {
+    display: inline-block;
+    background: var(--surface2);
+    padding: 0.15rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    margin-right: 0.3rem;
+    margin-bottom: 0.2rem;
+    cursor: pointer;
+  }
+  .message.bot .source-tag:hover { background: var(--border); }
+  .message.bot .priority-badge {
+    display: inline-block;
+    width: 8px; height: 8px; border-radius: 50%;
+    margin-right: 0.3rem;
+  }
+  .priority-1 { background: #fbbf24; }
+  .priority-2 { background: #f97316; }
+  .priority-3 { background: #3b82f6; }
+  .priority-4 { background: #22c55e; }
+  .priority-5 { background: #a855f7; }
+
+  .input-area {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .input-box {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-end;
+  }
+  .input-box textarea {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    color: var(--text);
+    font-size: 0.95rem;
+    resize: none;
+    min-height: 48px;
+    max-height: 150px;
+    font-family: inherit;
+    outline: none;
+  }
+  .input-box textarea:focus { border-color: var(--accent); }
+  .input-box .btn { height: 48px; padding: 0 1.2rem; }
+
+  .loading-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--surface);
+    border-radius: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text2);
+    align-self: flex-start;
+  }
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 1rem;
+    max-width: 700px;
+    width: 100%;
+    max-height: 85vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: modalIn 0.3s ease;
+  }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+  .modal-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-header h2 { font-size: 1.1rem; }
+  .modal-close {
+    background: none;
+    border: none;
+    color: var(--text2);
+    font-size: 1.5rem;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .modal-close:hover { color: var(--text); }
+  .modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .modal-body p { margin-bottom: 0.75rem; line-height: 1.6; }
+  .modal-body .field { margin-bottom: 1rem; }
+  .modal-body label { display: block; font-size: 0.85rem; color: var(--text2); margin-bottom: 0.3rem; }
+  .modal-body input, .modal-body textarea, .modal-body select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 0.6rem 0.8rem;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.9rem;
+    outline: none;
+  }
+  .modal-body input:focus, .modal-body textarea:focus, .modal-body select:focus { border-color: var(--accent); }
+  .modal-body textarea { min-height: 100px; resize: vertical; }
+  .modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+
+  .knowledge-list { display: flex; flex-direction: column; gap: 0.5rem; }
+  .knowledge-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .knowledge-item:hover { border-color: var(--accent); }
+  .knowledge-item .k-title { font-weight: 500; flex: 1; }
+  .knowledge-item .k-type { font-size: 0.75rem; color: var(--text2); background: var(--surface2); padding: 0.15rem 0.4rem; border-radius: 0.25rem; }
+
+  .welcome-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    text-align: center;
+    padding: 2rem;
+    gap: 1.5rem;
+  }
+  .welcome-screen h2 { font-size: 1.5rem; color: var(--accent2); }
+  .welcome-screen p { color: var(--text2); max-width: 500px; }
+  .quick-buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
+  .quick-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+  }
+  .quick-btn:hover { background: var(--surface2); color: var(--text); border-color: var(--accent); }
+
+  .status-bar {
+    padding: 0.5rem 1.5rem;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    font-size: 0.8rem;
+    color: var(--text2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .status-bar .model-status { display: flex; align-items: center; gap: 0.4rem; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
+  .status-dot.ready { background: var(--success); }
+  .status-dot.loading { background: var(--warning); animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .mobile-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--text);
+    font-size: 1.25rem;
+    cursor: pointer;
+  }
+
+  .sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 99;
+  }
+  .sidebar-backdrop.active { display: block; }
+
+  @media (max-width: 768px) {
+    .sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 100; transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .mobile-toggle { display: block; }
+    .message { max-width: 95%; }
+  }
+
+  .empty-state { text-align: center; color: var(--text2); padding: 3rem; }
+  .search-highlight { background: rgba(59,130,246,0.3); padding: 0 0.15rem; border-radius: 0.15rem; }
+
+  .toast {
+    position: fixed;
+    right: 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    z-index: 2000;
+    animation: toastIn 0.3s ease;
+    font-size: 0.9rem;
+    transition: bottom 0.3s ease;
+  }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 <base target="_blank">
 </head>
 <body>
+
 <header class="header">
   <div>
     <h1>⚖️ Юридический ИИ-Ассистент</h1>
     <div class="subtitle">Семантический поиск по законодательству РФ с доучиванием</div>
   </div>
   <div class="header-actions">
-    <button class="mobile-toggle" onclick="App.toggleSidebar()">☰</button>
-    <button class="btn" onclick="App.openTeachModal()">🎓 Обучить</button>
-    <button class="btn" onclick="App.openKnowledgeModal()">📚 База знаний</button>
-    <button class="btn" onclick="App.exportKnowledge()">📤 Экспорт</button>
+    <button class="mobile-toggle" id="mobileToggle">☰</button>
+    <button class="btn" onclick="openTeachModal()">🎓 Обучить</button>
+    <button class="btn" onclick="openKnowledgeModal()">📚 База знаний</button>
+    <button class="btn" onclick="exportKnowledge()">📤 Экспорт</button>
     <button class="btn" onclick="document.getElementById('importFile').click()">📥 Импорт</button>
-    <input type="file" id="importFile" accept=".json" style="display:none" onchange="App.importKnowledge(this)">
-    <button class="btn danger" onclick="App.clearChat()">🗑️ Очистить</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importKnowledge(this)">
+    <button class="btn danger" onclick="clearChat()">🗑️ Очистить</button>
   </div>
 </header>
 
 <div class="main">
+  <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">📜 История запросов</div>
     <div class="sidebar-content" id="historyList"></div>
@@ -371,18 +401,18 @@ body {
         <h2>Добро пожаловать!</h2>
         <p>Задайте вопрос по российскому законодательству. Ассистент найдёт релевантные нормы права и сформирует ответ с указанием источников.</p>
         <div class="quick-buttons">
-          <button class="quick-btn" onclick="App.sendQuick('Как подать на алименты?')">Как подать на алименты?</button>
-          <button class="quick-btn" onclick="App.sendQuick('Права арендатора жилья')">Права арендатора</button>
-          <button class="quick-btn" onclick="App.sendQuick('Срок исковой давности')">Срок исковой давности</button>
-          <button class="quick-btn" onclick="App.sendQuick('Раздел имущества при разводе')">Раздел имущества</button>
-          <button class="quick-btn" onclick="App.sendQuick('Трудовой договор, обязательные условия')">Трудовой договор</button>
+          <button class="quick-btn" onclick="sendQuick('Как подать на алименты?')">Как подать на алименты?</button>
+          <button class="quick-btn" onclick="sendQuick('Права арендатора жилья')">Права арендатора</button>
+          <button class="quick-btn" onclick="sendQuick('Срок исковой давности')">Срок исковой давности</button>
+          <button class="quick-btn" onclick="sendQuick('Раздел имущества при разводе')">Раздел имущества</button>
+          <button class="quick-btn" onclick="sendQuick('Трудовой договор, обязательные условия')">Трудовой договор</button>
         </div>
       </div>
     </div>
     <div class="input-area">
       <div class="input-box">
-        <textarea id="userInput" rows="1" placeholder="Введите ваш юридический вопрос..." onkeydown="App.handleKey(event)"></textarea>
-        <button class="btn primary" id="sendBtn" onclick="App.sendMessage()" disabled>➤</button>
+        <textarea id="userInput" rows="1" placeholder="Введите ваш юридический вопрос..." onkeydown="handleKey(event)"></textarea>
+        <button class="btn primary" id="sendBtn" onclick="sendMessage()" disabled>➤</button>
       </div>
     </div>
     <div class="status-bar">
@@ -395,12 +425,11 @@ body {
   </div>
 </div>
 
-<!-- Модалка: Обучение -->
 <div class="modal-overlay" id="teachModal">
   <div class="modal">
     <div class="modal-header">
       <h2>🎓 Доучить ассистента</h2>
-      <button class="modal-close" onclick="App.closeModal('teachModal')">×</button>
+      <button class="modal-close" onclick="closeModal('teachModal')">&times;</button>
     </div>
     <div class="modal-body">
       <div class="field">
@@ -435,318 +464,393 @@ body {
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn" onclick="App.closeModal('teachModal')">Отмена</button>
-      <button class="btn primary" onclick="App.saveTeach()">💾 Сохранить</button>
+      <button class="btn" onclick="closeModal('teachModal')">Отмена</button>
+      <button class="btn primary" onclick="saveTeach()">💾 Сохранить</button>
     </div>
   </div>
 </div>
 
-<!-- Модалка: База знаний -->
 <div class="modal-overlay" id="knowledgeModal">
   <div class="modal">
     <div class="modal-header">
       <h2>📚 База знаний</h2>
-      <button class="modal-close" onclick="App.closeModal('knowledgeModal')">×</button>
+      <button class="modal-close" onclick="closeModal('knowledgeModal')">&times;</button>
     </div>
     <div class="modal-body">
       <div class="field">
-        <input type="text" id="kbSearch" placeholder="🔍 Поиск по базе знаний..." oninput="App.filterKnowledge()">
+        <input type="text" id="kbSearch" placeholder="🔍 Поиск по базе знаний..." oninput="filterKnowledge()">
       </div>
       <div class="knowledge-list" id="knowledgeList"></div>
     </div>
     <div class="modal-footer">
-      <button class="btn" onclick="App.closeModal('knowledgeModal')">Закрыть</button>
+      <button class="btn" onclick="closeModal('knowledgeModal')">Закрыть</button>
     </div>
   </div>
 </div>
 
-<!-- Модалка: Детали блока -->
 <div class="modal-overlay" id="detailModal">
   <div class="modal">
     <div class="modal-header">
       <h2 id="detailTitle">Детали</h2>
-      <button class="modal-close" onclick="App.closeModal('detailModal')">×</button>
+      <button class="modal-close" onclick="closeModal('detailModal')">&times;</button>
     </div>
     <div class="modal-body" id="detailBody"></div>
     <div class="modal-footer">
-      <button class="btn danger" id="detailDelete" onclick="App.deleteCurrentBlock()">🗑️ Удалить</button>
-      <button class="btn" onclick="App.closeModal('detailModal')">Закрыть</button>
+      <button class="btn danger" id="detailDelete" onclick="deleteCurrentBlock()">🗑️ Удалить</button>
+      <button class="btn" onclick="closeModal('detailModal')">Закрыть</button>
     </div>
   </div>
 </div>
 
-<script type="module">
-// ==================== IMPORT TRANSFORMERS ====================
-let pipeline = null;
-try {
-  const mod = await import("https://esm.sh/@xenova/transformers@2.17.2");
-  pipeline = mod.pipeline;
-} catch (e) {
-  console.warn("Transformers.js not available via ESM:", e.message);
-}
-
-// ==================== DATA ====================
+<script>
+// ==================== БАЗОВАЯ БАЗА ЗНАНИЙ ====================
 const DEFAULT_KNOWLEDGE = [
   {
     id: "kz_1",
     title: "Конституция РФ, ст. 38 — Семья",
     content: "Семья находится под защитой государства. Каждый ребёнок имеет право на воспитание в семье, право на заботу со стороны родителей, право на благополучие жизни, воспитание, образование, заботу со стороны семьи.",
-    keywords: ["семья","ребёнок","родители","воспитание","конституция"],
-    type: "law", source: "Конституция РФ", article: "ст. 38", priority: 1,
+    keywords: ["семья", "ребёнок", "родители", "воспитание", "конституция"],
+    type: "law",
+    source: "Конституция РФ",
+    article: "ст. 38",
+    priority: 1,
     quickReply: "Семья находится под защитой государства. Каждый ребёнок имеет право на воспитание в семье и заботу со стороны родителей."
   },
   {
     id: "kz_2",
     title: "Конституция РФ, ст. 40 — Жилище",
     content: "Каждый имеет право на жилище. Никто не может быть произвольно лишён жилища. Государство содействует жилищному строительству, создаёт условия для реализации права на жилище.",
-    keywords: ["жилище","квартира","дом","выселение","аренда","конституция"],
-    type: "law", source: "Конституция РФ", article: "ст. 40", priority: 1,
+    keywords: ["жилище", "квартира", "дом", "выселение", "аренда", "конституция"],
+    type: "law",
+    source: "Конституция РФ",
+    article: "ст. 40",
+    priority: 1,
     quickReply: "Каждый имеет право на жилище. Никто не может быть произвольно лишён жилища."
   },
   {
     id: "kz_3",
     title: "СК РФ, ст. 80 — Алименты на несовершеннолетних детей",
     content: "Родители обязаны содержать своих несовершеннолетних детей. При отсутствии соглашения об уплате алиментов они взыскиваются в судебном порядке. Размер алиментов: на 1 ребёнка — 1/4, на 2 детей — 1/3, на 3 и более — 1/2 заработка родителя.",
-    keywords: ["алименты","ребёнок","содержание","взыскание","размер","процент"],
-    type: "law", source: "Семейный кодекс РФ", article: "ст. 80-81", priority: 4,
+    keywords: ["алименты", "ребёнок", "содержание", "взыскание", "размер", "процент"],
+    type: "law",
+    source: "Семейный кодекс РФ",
+    article: "ст. 80-81",
+    priority: 4,
     quickReply: "Алименты на 1 ребёнка — 25%, на 2 — 33%, на 3+ — 50% заработка. Взыскиваются через суд при отсутствии соглашения."
   },
   {
     id: "kz_4",
     title: "СК РФ, ст. 38 — Раздел имущества супругов",
     content: "Имущество, нажитое супругами во время брака, является их совместной собственностью. При разделе общего имущества супругов имущество делится между супругами в равных долях, если договором между ними не установлен иной порядок.",
-    keywords: ["раздел","имущество","брак","совместная собственность","доля","развод"],
-    type: "law", source: "Семейный кодекс РФ", article: "ст. 38-39", priority: 4,
+    keywords: ["раздел", "имущество", "брак", "совместная собственность", "доля", "развод"],
+    type: "law",
+    source: "Семейный кодекс РФ",
+    article: "ст. 38-39",
+    priority: 4,
     quickReply: "Имущество, нажитое в браке, делится поровну между супругами, если нет брачного договора."
   },
   {
     id: "kz_5",
     title: "ГК РФ, ст. 307 — Исполнение обязательств",
     content: "Обязательства должны исполняться надлежащим образом в соответствии с условиями обязательства и требованиями закона. Односторонний отказ от исполнения обязательства не допускается, за исключением случаев, предусмотренных законом.",
-    keywords: ["обязательства","исполнение","договор","отказ","долг"],
-    type: "law", source: "Гражданский кодекс РФ", article: "ст. 307", priority: 4,
+    keywords: ["обязательства", "исполнение", "договор", "отказ", "долг"],
+    type: "law",
+    source: "Гражданский кодекс РФ",
+    article: "ст. 307",
+    priority: 4,
     quickReply: "Обязательства должны исполняться надлежащим образом. Односторонний отказ не допускается."
   },
   {
     id: "kz_6",
     title: "ГК РФ, ст. 450 — Основания изменения и расторжения договора",
     content: "Договор может быть изменён или расторгнут по соглашению сторон, а также по требованию одной из сторон при существенном нарушении договора другой стороной или в иных случаях, предусмотренных законом.",
-    keywords: ["договор","расторжение","изменение","стороны","нарушение"],
-    type: "law", source: "Гражданский кодекс РФ", article: "ст. 450-453", priority: 4,
+    keywords: ["договор", "расторжение", "изменение", "стороны", "нарушение"],
+    type: "law",
+    source: "Гражданский кодекс РФ",
+    article: "ст. 450-453",
+    priority: 4,
     quickReply: "Договор изменяется/расторгается по соглашению сторон или при существенном нарушении."
   },
   {
     id: "kz_7",
     title: "ЖК РФ, ст. 30 — Права собственника жилого помещения",
     content: "Собственник жилого помещения владеет, пользуется и распоряжается им по своему усмотрению. Собственник жилого помещения может сдавать его внаём (аренду).",
-    keywords: ["собственник","жильё","аренда","права","квартира","найм"],
-    type: "law", source: "Жилищный кодекс РФ", article: "ст. 30", priority: 4,
+    keywords: ["собственник", "жильё", "аренда", "права", "квартира", "найм"],
+    type: "law",
+    source: "Жилищный кодекс РФ",
+    article: "ст. 30",
+    priority: 4,
     quickReply: "Собственник владеет, пользуется и распоряжается жильём, может сдавать в аренду."
   },
   {
     id: "kz_8",
     title: "ЖК РФ, ст. 61 — Выселение из жилого помещения",
     content: "Выселение граждан из занимаемых жилых помещений производится по решению суда. Граждане могут быть выселены с предоставлением другого благоустроенного жилого помещения в исключительных случаях, предусмотренных законом.",
-    keywords: ["выселение","жильё","суд","выселить","выселяют","съёмщик"],
-    type: "law", source: "Жилищный кодекс РФ", article: "ст. 61", priority: 4,
+    keywords: ["выселение", "жильё", "суд", "выселить", "выселяют", "съёмщик"],
+    type: "law",
+    source: "Жилищный кодекс РФ",
+    article: "ст. 61",
+    priority: 4,
     quickReply: "Выселение производится только по решению суда. В исключительных случаях — с предоставлением другого жилья."
   },
   {
     id: "kz_9",
     title: "ТК РФ, ст. 56 — Трудовой договор",
     content: "Трудовой договор — соглашение между работодателем и работником, устанавливающее их взаимные права и обязанности. Обязательные условия: место работы, дата начала, должность, права и обязанности, характеристики условий труда, режим труда и отдыха, условия оплаты.",
-    keywords: ["трудовой договор","работа","работник","работодатель","труд","увольнение"],
-    type: "law", source: "Трудовой кодекс РФ", article: "ст. 56-57", priority: 4,
+    keywords: ["трудовой договор", "работа", "работник", "работодатель", "труд", "увольнение"],
+    type: "law",
+    source: "Трудовой кодекс РФ",
+    article: "ст. 56-57",
+    priority: 4,
     quickReply: "Трудовой договор устанавливает права и обязанности работника и работодателя. Должен содержать обязательные условия (место, должность, оплата, режим)."
   },
   {
     id: "kz_10",
     title: "ТК РФ, ст. 77 — Основания прекращения трудового договора",
     content: "Трудовой договор прекращается по соглашению сторон, по истечении срока, по инициативе работника, по инициативе работодателя (сокращение штата, неоднократное неисполнение обязанностей, прогул), по обстоятельствам, не зависящим от воли сторон.",
-    keywords: ["увольнение","трудовой договор","сокращение","прогул","штраф","уволить"],
-    type: "law", source: "Трудовой кодекс РФ", article: "ст. 77-81", priority: 4,
+    keywords: ["увольнение", "трудовой договор", "сокращение", "прогул", "штраф", "уволить"],
+    type: "law",
+    source: "Трудовой кодекс РФ",
+    article: "ст. 77-81",
+    priority: 4,
     quickReply: "Увольнение возможно по соглашению, по инициативе работника или работодателя (сокращение, нарушения, прогул)."
   },
   {
     id: "kz_11",
     title: "ГК РФ, ст. 196 — Общий срок исковой давности",
     content: "Общий срок исковой давности составляет три года со дня, когда лицо узнало или должно было узнать о нарушении своего права. По отдельным видам требований законом могут быть установлены сокращённые или удлинённые сроки.",
-    keywords: ["исковая давность","срок","иск","суд","три года","пропуск"],
-    type: "law", source: "Гражданский кодекс РФ", article: "ст. 196", priority: 4,
+    keywords: ["исковая давность", "срок", "иск", "суд", "три года", "пропуск"],
+    type: "law",
+    source: "Гражданский кодекс РФ",
+    article: "ст. 196",
+    priority: 4,
     quickReply: "Общий срок исковой давности — 3 года с момента, когда вы узнали о нарушении права."
   },
   {
     id: "kz_12",
     title: "ГК РФ, ст. 572 — Договор дарения",
     content: "По договору дарения одна сторона (даритель) безвозмездно передаёт другой стороне (одаряемому) вещь в собственность или освобождает её от имущественных обязательств. Договор дарения нотариально удостоверяется при дарении недвижимости.",
-    keywords: ["дарение","дарственная","дарить","квартира","недвижимость","нотариус"],
-    type: "law", source: "Гражданский кодекс РФ", article: "ст. 572-582", priority: 4,
+    keywords: ["дарение", "дарственная", "дарить", "квартира", "недвижимость", "нотариус"],
+    type: "law",
+    source: "Гражданский кодекс РФ",
+    article: "ст. 572-582",
+    priority: 4,
     quickReply: "Дарение — безвозмездная передача имущества. Дарение недвижимости требует нотариального удостоверения."
   },
   {
     id: "kz_13",
     title: "НК РФ, ст. 23 — Налог на доходы физических лиц (НДФЛ)",
     content: "Налоговая ставка НДФЛ составляет 13% для налоговых резидентов РФ по большинству видов доходов. Для нерезидентов — 30%. Налоговый период — календарный год. Декларация по форме 3-НДФЛ подаётся не позднее 30 апреля года, следующего за отчётным.",
-    keywords: ["ндфл","налог","доход","13 процентов","3-ндфл","декларация"],
-    type: "law", source: "Налоговый кодекс РФ", article: "ст. 23, 224", priority: 4,
+    keywords: ["ндфл", "налог", "доход", "13 процентов", "3-ндфл", "декларация"],
+    type: "law",
+    source: "Налоговый кодекс РФ",
+    article: "ст. 23, 224",
+    priority: 4,
     quickReply: "НДФЛ для резидентов — 13%. Декларация 3-НДФЛ подаётся до 30 апреля следующего года."
   },
   {
     id: "kz_14",
     title: "КоАП РФ, ст. 12.8 — Управление в состоянии опьянения",
     content: "Управление транспортным средством водителем, находящимся в состоянии опьянения, влечёт лишение права управления на срок от полутора до двух лет и штраф 30 000 руб. За повторное нарушение — лишение на 3 года и штраф 50 000 руб.",
-    keywords: ["пьянство","опьянение","лишение прав","штраф","управление","алкоголь"],
-    type: "law", source: "КоАП РФ", article: "ст. 12.8", priority: 4,
+    keywords: ["пьянство", "опьянение", "лишение прав", "штраф", "управление", "алкоголь"],
+    type: "law",
+    source: "КоАП РФ",
+    article: "ст. 12.8",
+    priority: 4,
     quickReply: "Управление в состоянии опьянения: лишение прав на 1.5-2 года + штраф 30 000 ₽. Повторно — 3 года + 50 000 ₽."
   },
   {
     id: "kz_15",
     title: "УК РФ, ст. 105 — Убийство",
     content: "Убийство, то есть умышленное причинение смерти другому человеку, наказывается лишением свободы на срок до 15 лет. Квалифицированные виды (двое и более лиц, несовершеннолетний, жестокость, общеопасным способом) — до 20 лет или пожизненно.",
-    keywords: ["убийство","смерть","лишение свободы","срок","умышленное"],
-    type: "law", source: "Уголовный кодекс РФ", article: "ст. 105", priority: 4,
+    keywords: ["убийство", "смерть", "лишение свободы", "срок", "умышленное"],
+    type: "law",
+    source: "Уголовный кодекс РФ",
+    article: "ст. 105",
+    priority: 4,
     quickReply: "Убийство карается лишением свободы до 15 лет. Квалифицированные виды — до 20 лет или пожизненно."
   },
   {
     id: "kz_16",
     title: "Практика: Алименты на взрослых детей-инвалидов",
     content: "По ст. 85 СК РФ родители обязаны содержать своих совершеннолетних нетрудоспособных детей, нуждающихся в помощи. Судебная практика ВС РФ указывает, что алименты на совершеннолетнего инвалида взыскиваются в твёрдой денежной сумме с учётом материального положения сторон.",
-    keywords: ["алименты","инвалид","взрослый","совершеннолетний","твёрдая сумма","судебная практика"],
-    type: "practice", source: "Обзор судебной практики ВС РФ", article: "ст. 85 СК РФ", priority: 5,
+    keywords: ["алименты", "инвалид", "взрослый", "совершеннолетний", "твёрдая сумма", "судебная практика"],
+    type: "practice",
+    source: "Обзор судебной практики ВС РФ",
+    article: "ст. 85 СК РФ",
+    priority: 5,
     quickReply: "На совершеннолетних инвалидов алименты взыскиваются в твёрдой сумме с учётом материального положения сторон."
   },
   {
     id: "kz_17",
     title: "Практика: Признание сделки недействительной",
     content: "Согласно позиции ВС РФ, сделка может быть признана недействительной по основаниям, предусмотренным ст. 166-179 ГК РФ. Ничтожная сделка недействительна с момента совершения. Оспоримая — с момента признания недействительной судом.",
-    keywords: ["сделка","недействительная","ничтожная","оспоримая","суд","признание"],
-    type: "practice", source: "Постановления Пленумов ВС РФ", article: "ст. 166-179 ГК РФ", priority: 5,
+    keywords: ["сделка", "недействительная", "ничтожная", "оспоримая", "суд", "признание"],
+    type: "practice",
+    source: "Постановления Пленумов ВС РФ",
+    article: "ст. 166-179 ГК РФ",
+    priority: 5,
     quickReply: "Ничтожная сделка недействительна с момента совершения. Оспоримая — с момента судебного решения."
   },
   {
     id: "kz_18",
     title: "Практика: Защита прав потребителей — возврат товара",
     content: "По ЗоЗПП потребитель вправе в течение 14 дней вернуть товар надлежащего качества, если он не подошёл по форме, габаритам, фасону, цвету, размеру или комплектации. Исключения: персонализированные товары, скоропортящиеся, предметы личной гигиены.",
-    keywords: ["потребитель","возврат","товар","14 дней","зозпп","качество"],
-    type: "practice", source: "Закон о защите прав потребителей", article: "ст. 25-26", priority: 5,
+    keywords: ["потребитель", "возврат", "товар", "14 дней", "зозпп", "качество"],
+    type: "practice",
+    source: "Закон о защите прав потребителей",
+    article: "ст. 25-26",
+    priority: 5,
     quickReply: "В течение 14 дней можно вернуть товар надлежащего качества, если не подошёл. Есть исключения."
   },
   {
     id: "kz_19",
     title: "Практика: Брачный договор",
     content: "Брачный договор регулирует имущественные отношения супругов. Может быть заключён до регистрации брака (вступает в силу с момента регистрации) или в любое время брака. Нотариально удостоверяется. Не может ограничивать дееспособность, право на содержание, права детей.",
-    keywords: ["брачный договор","брак","имущество","нотариус","раздел","совместная собственность"],
-    type: "practice", source: "СК РФ, ст. 40-44", article: "ст. 40-44 СК РФ", priority: 5,
+    keywords: ["брачный договор", "брак", "имущество", "нотариус", "раздел", "совместная собственность"],
+    type: "practice",
+    source: "СК РФ, ст. 40-44",
+    article: "ст. 40-44 СК РФ",
+    priority: 5,
     quickReply: "Брачный договор нотариально удостоверяется и регулирует имущественные отношения. Не может ограничивать права детей."
   },
   {
     id: "kz_20",
     title: "Практика: Освобождение от уголовной ответственности",
     content: "По ст. 75-76.1 УК РФ лицо, совершившее преступление впервые небольшой или средней тяжести, может быть освобождено от уголовной ответственности при примирении с потерпевшим, активном раскаянии или изменении обстановки.",
-    keywords: ["уголовная ответственность","освобождение","примирение","раскаяние","потерпевший"],
-    type: "practice", source: "УК РФ", article: "ст. 75-76.1", priority: 5,
+    keywords: ["уголовная ответственность", "освобождение", "примирение", "раскаяние", "потерпевший"],
+    type: "practice",
+    source: "УК РФ",
+    article: "ст. 75-76.1",
+    priority: 5,
     quickReply: "При первичном небольшом преступлении возможно освобождение через примирение с потерпевшим или активное раскаяние."
   }
 ];
 
-// ==================== STATE ====================
+// ==================== ГЛОБАЛЬНОЕ СОСТОЯНИЕ ====================
 let KNOWLEDGE_BASE = [];
 let embeddings = [];
 let embedder = null;
 let chatHistory = [];
 let currentDetailId = null;
 let isProcessing = false;
-let modelReady = false;
+let kbFilterTimeout = null;
 
-// ==================== INIT ====================
+// ==================== ИНИЦИАЛИЗАЦИЯ ====================
 async function init() {
   loadKnowledge();
+  loadChatHistory();
   updateKbCount();
   renderHistory();
-  setModelStatus("loading");
+  setModelStatus('loading');
 
-  if (pipeline) {
-    try {
-      embedder = await pipeline("feature-extraction", "Xenova/rubert-tiny2", {
-        quantized: true,
-        revision: "main"
-      });
-      modelReady = true;
-      setModelStatus("ready");
-      await rebuildIndex();
-    } catch (e) {
-      console.error("Model init error:", e);
-      setModelStatus("error");
-      document.getElementById("modelText").textContent = "Поиск по ключевым словам (модель недоступна)";
+  document.getElementById('mobileToggle').addEventListener('click', toggleSidebar);
+
+  try {
+    if (!window.transformers) {
+      throw new Error('Transformers library not loaded');
     }
-  } else {
-    setModelStatus("error");
-    document.getElementById("modelText").textContent = "Поиск по ключевым словам (без ИИ-модели)";
+    const { pipeline } = window.transformers;
+    embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
+      quantized: true,
+      revision: 'main'
+    });
+    setModelStatus('ready');
+    await rebuildIndex();
+    document.getElementById('sendBtn').disabled = false;
+  } catch (e) {
+    console.error('Model load error:', e);
+    setModelStatus('error');
+    document.getElementById('modelText').textContent = 'Поиск по ключевым словам (модель недоступна)';
+    document.getElementById('sendBtn').disabled = false;
+    await rebuildIndexFallback();
   }
-
-  document.getElementById("sendBtn").disabled = false;
 }
 
 function setModelStatus(status) {
-  const dot = document.getElementById("modelDot");
-  const text = document.getElementById("modelText");
-  dot.className = "status-dot " + status;
-  if (status === "loading") text.textContent = "Загрузка модели ИИ...";
-  else if (status === "ready") text.textContent = "Модель готова (rubert-tiny2)";
-  else if (status === "error") text.textContent = "Поиск по ключевым словам";
+  const dot = document.getElementById('modelDot');
+  const text = document.getElementById('modelText');
+  dot.className = 'status-dot ' + status;
+  if (status === 'loading') text.textContent = 'Загрузка модели ИИ...';
+  else if (status === 'ready') text.textContent = 'Модель готова (all-MiniLM-L6-v2)';
+  else if (status === 'error') text.textContent = 'Модель недоступна';
 }
 
-// ==================== STORAGE ====================
+// ==================== ХРАНЕНИЕ ====================
 function loadKnowledge() {
   try {
-    const stored = localStorage.getItem("ya_knowledge_base");
+    const stored = localStorage.getItem('ya_knowledge_base');
     const custom = stored ? JSON.parse(stored) : [];
     KNOWLEDGE_BASE = [...DEFAULT_KNOWLEDGE, ...custom];
   } catch (e) {
+    console.error('loadKnowledge error:', e);
     KNOWLEDGE_BASE = [...DEFAULT_KNOWLEDGE];
   }
 }
 
 function saveCustomKnowledge() {
   try {
-    const custom = KNOWLEDGE_BASE.filter(k => !k.id.startsWith("kz_"));
-    localStorage.setItem("ya_knowledge_base", JSON.stringify(custom));
+    const custom = KNOWLEDGE_BASE.filter(k => !k.id.startsWith('kz_'));
+    localStorage.setItem('ya_knowledge_base', JSON.stringify(custom));
+    updateKbCount();
   } catch (e) {
-    console.warn("localStorage unavailable");
+    showToast('Ошибка сохранения: хранилище переполнено');
+    console.error(e);
   }
-  updateKbCount();
+}
+
+function loadChatHistory() {
+  try {
+    const stored = localStorage.getItem('ya_chat_history');
+    if (stored) {
+      chatHistory = JSON.parse(stored);
+    }
+  } catch (e) {
+    console.error('loadChatHistory error:', e);
+    chatHistory = [];
+  }
+}
+
+function saveChatHistory() {
+  try {
+    localStorage.setItem('ya_chat_history', JSON.stringify(chatHistory.slice(0, 50)));
+  } catch (e) {
+    console.error('saveChatHistory error:', e);
+  }
 }
 
 function updateKbCount() {
-  document.getElementById("kbCount").textContent = KNOWLEDGE_BASE.length;
+  document.getElementById('kbCount').textContent = KNOWLEDGE_BASE.length;
 }
 
-// ==================== INDEXING ====================
+// ==================== ИНДЕКСАЦИЯ ====================
 async function rebuildIndex() {
-  if (!embedder || !modelReady) {
-    embeddings = [];
-    return;
-  }
+  if (!embedder) return;
   embeddings = [];
-  for (let i = 0; i < KNOWLEDGE_BASE.length; i++) {
-    const item = KNOWLEDGE_BASE[i];
-    const text = item.title + " " + item.content + " " + item.keywords.join(" ");
-    try {
-      const result = await embedder(text, { pooling: "mean", normalize: true });
-      embeddings.push({ id: item.id, vector: Array.from(result.data) });
-    } catch (e) {
-      embeddings.push({ id: item.id, vector: null });
-    }
-    if (i % 3 === 0) {
-      document.getElementById("modelText").textContent = "Индексация... " + (i+1) + "/" + KNOWLEDGE_BASE.length;
-      await new Promise(r => setTimeout(r, 5));
-    }
+  const batchSize = 5;
+  for (let i = 0; i < KNOWLEDGE_BASE.length; i += batchSize) {
+    const batch = KNOWLEDGE_BASE.slice(i, i + batchSize);
+    const batchPromises = batch.map(async (item) => {
+      const text = item.title + ' ' + item.content + ' ' + item.keywords.join(' ');
+      const result = await embedder(text, { pooling: 'mean', normalize: true });
+      return {
+        id: item.id,
+        vector: Array.from(result.data)
+      };
+    });
+    const batchResults = await Promise.all(batchPromises);
+    embeddings.push(...batchResults);
+    document.getElementById('modelText').textContent = 'Индексация... ' + Math.min(i + batchSize, KNOWLEDGE_BASE.length) + '/' + KNOWLEDGE_BASE.length;
+    await new Promise(r => setTimeout(r, 10));
   }
-  setModelStatus("ready");
+  setModelStatus('ready');
+}
+
+async function rebuildIndexFallback() {
+  embeddings = [];
 }
 
 function cosineSimilarity(a, b) {
-  if (!a || !b || a.length !== b.length) return 0;
   let dot = 0, normA = 0, normB = 0;
   for (let i = 0; i < a.length; i++) {
     dot += a[i] * b[i];
@@ -757,31 +861,27 @@ function cosineSimilarity(a, b) {
   return denom === 0 ? 0 : dot / denom;
 }
 
-// ==================== SEARCH ====================
-async function doSearch(query) {
+// ==================== ПОИСК ====================
+async function search(query) {
   const results = [];
-  const qWords = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
 
-  // Semantic search if available
-  if (embedder && modelReady && embeddings.length > 0) {
-    try {
-      const qVec = await embedder(query, { pooling: "mean", normalize: true });
-      const qArr = Array.from(qVec.data);
-      for (let i = 0; i < embeddings.length; i++) {
-        if (embeddings[i].vector) {
-          const score = cosineSimilarity(qArr, embeddings[i].vector);
-          results.push({ item: KNOWLEDGE_BASE[i], score: score, match: "semantic" });
-        }
-      }
-    } catch (e) {
-      console.warn("Semantic search failed, falling back to keywords");
+  if (embedder && embeddings.length > 0) {
+    const qVec = await embedder(query, { pooling: 'mean', normalize: true });
+    const qArr = Array.from(qVec.data);
+    for (let i = 0; i < embeddings.length; i++) {
+      const score = cosineSimilarity(qArr, embeddings[i].vector);
+      results.push({
+        item: KNOWLEDGE_BASE[i],
+        score: score,
+        match: 'semantic'
+      });
     }
   }
 
-  // Keyword search / boost
+  const qWords = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
   for (let i = 0; i < KNOWLEDGE_BASE.length; i++) {
     const item = KNOWLEDGE_BASE[i];
-    const text = (item.title + " " + item.content + " " + item.keywords.join(" ")).toLowerCase();
+    const text = (item.title + ' ' + item.content + ' ' + item.keywords.join(' ')).toLowerCase();
     let kwScore = 0;
     qWords.forEach(w => {
       if (text.includes(w)) kwScore += 0.3;
@@ -793,11 +893,10 @@ async function doSearch(query) {
     if (existing) {
       existing.score += kwScore;
     } else {
-      results.push({ item, score: kwScore, match: "keyword" });
+      results.push({ item, score: kwScore, match: 'keyword' });
     }
   }
 
-  // Sort by priority first, then by score
   results.sort((a, b) => {
     const pDiff = a.item.priority - b.item.priority;
     if (pDiff !== 0) return pDiff;
@@ -807,8 +906,8 @@ async function doSearch(query) {
   return results.filter(r => r.score > 0.15).slice(0, 7);
 }
 
-// ==================== ANSWER BUILDING ====================
-function buildAnswer(results) {
+// ==================== ОТВЕТ ====================
+function buildAnswer(results, query) {
   if (results.length === 0) {
     return {
       text: "К сожалению, по вашему запросу не найдено релевантных норм права в базе знаний. Попробуйте переформулировать вопрос или добавить новый блок через функцию «Обучить».",
@@ -816,98 +915,114 @@ function buildAnswer(results) {
     };
   }
 
-  const best = results.find(r => r.item.quickReply && r.score > 0.4);
-  if (best) {
-    return {
-      text: best.item.quickReply + "\n\n" + best.item.content,
-      sources: [best.item]
-    };
+  const best = results.find(r => r.item.quickReply);
+  if (best && best.score > 0.5) {
+    return { text: best.item.quickReply, sources: [best.item] };
   }
 
-  let text = "";
-  const sources = [];
+  let answer = '';
+  const uniqueSources = [];
   results.slice(0, 5).forEach((r, idx) => {
     const item = r.item;
     if (idx === 0) {
-      text = item.content;
+      answer += item.content;
     } else {
-      text += "\n\nТакже relevant: " + item.title + " — " + item.content.substring(0, 200) + "...";
+      answer += "
+
+Также актуально: " + item.title + " — " + item.content.substring(0, 200) + "...";
     }
-    if (!sources.find(s => s.id === item.id)) {
-      sources.push(item);
+    if (!uniqueSources.find(s => s.id === item.id)) {
+      uniqueSources.push(item);
     }
   });
 
-  return { text, sources };
+  return { text: answer, sources: uniqueSources };
 }
 
-// ==================== CHAT ====================
+// ==================== ЧАТ ====================
 async function sendMessage() {
-  const input = document.getElementById("userInput");
+  const input = document.getElementById('userInput');
   const text = input.value.trim();
   if (!text || isProcessing) return;
 
   isProcessing = true;
-  input.value = "";
-  input.style.height = "auto";
-  document.getElementById("sendBtn").disabled = true;
-  const welcome = document.getElementById("welcome");
+  input.value = '';
+  input.style.height = 'auto';
+  document.getElementById('sendBtn').disabled = true;
+  const welcome = document.getElementById('welcome');
   if (welcome) welcome.remove();
 
-  addMessage(text, "user");
+  addMessage(text, 'user');
   addToHistory(text);
 
   const loadingId = addLoading();
 
   try {
-    const results = await doSearch(text);
+    const results = await search(text);
     removeLoading(loadingId);
-    const answer = buildAnswer(results);
-    addMessage(answer.text, "bot", answer.sources);
+    const answer = buildAnswer(results, text);
+    addMessage(answer.text, 'bot', answer.sources);
   } catch (e) {
     removeLoading(loadingId);
-    addMessage("Произошла ошибка при обработке запроса: " + e.message, "bot", []);
+    addMessage('Произошла ошибка при обработке запроса: ' + e.message, 'bot', []);
   }
 
   isProcessing = false;
-  document.getElementById("sendBtn").disabled = false;
+  document.getElementById('sendBtn').disabled = false;
 }
 
 function sendQuick(text) {
-  document.getElementById("userInput").value = text;
+  document.getElementById('userInput').value = text;
   sendMessage();
 }
 
 function handleKey(e) {
-  if (e.key === "Enter" && !e.shiftKey) {
+  if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     sendMessage();
+    return;
   }
-  const ta = e.target;
-  ta.style.height = "auto";
-  ta.style.height = Math.min(ta.scrollHeight, 150) + "px";
+  if (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete' || e.key === 'Paste') {
+    const ta = e.target;
+    requestAnimationFrame(() => {
+      ta.style.height = 'auto';
+      ta.style.height = Math.min(ta.scrollHeight, 150) + 'px';
+    });
+  }
+}
+
+function formatMessage(text) {
+  let html = escapeHtml(text);
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/
+/g, '<br>');
+  html = html.replace(/^(•|\-|[0-9]+\.)\s+(.+)$/gm, '<li>$2</li>');
+  if (html.includes('<li>')) {
+    html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+  }
+  return html;
 }
 
 function addMessage(text, sender, sources) {
-  const container = document.getElementById("messages");
-  const div = document.createElement("div");
-  div.className = "message " + sender;
+  const container = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = 'message ' + sender;
 
-  if (sender === "bot" && sources && sources.length > 0) {
-    div.innerHTML = escapeHtml(text).replace(/\n/g, "<br>");
-    const srcDiv = document.createElement("div");
-    srcDiv.className = "source";
-    srcDiv.innerHTML = "<strong>Источники:</strong><br>";
+  if (sender === 'bot' && sources && sources.length > 0) {
+    div.innerHTML = formatMessage(text);
+    const srcDiv = document.createElement('div');
+    srcDiv.className = 'source';
+    srcDiv.innerHTML = '<strong>Источники:</strong><br>';
     sources.forEach(s => {
-      const badge = document.createElement("span");
-      badge.className = "source-tag";
-      badge.innerHTML = '<span class="priority-badge priority-' + s.priority + '"></span>' + escapeHtml(s.source) + " " + escapeHtml(s.article || "");
-      badge.onclick = () => showDetail(s.id);
+      const badge = document.createElement('span');
+      badge.className = 'source-tag';
+      badge.innerHTML = '<span class="priority-badge priority-' + s.priority + '"></span>' + escapeHtml(s.source) + ' ' + escapeHtml(s.article || '');
+      badge.onclick = function() { showDetail(s.id); };
       srcDiv.appendChild(badge);
     });
     div.appendChild(srcDiv);
   } else {
-    div.innerHTML = escapeHtml(text).replace(/\n/g, "<br>");
+    div.innerHTML = formatMessage(text);
   }
 
   container.appendChild(div);
@@ -915,11 +1030,11 @@ function addMessage(text, sender, sources) {
 }
 
 function addLoading() {
-  const container = document.getElementById("messages");
-  const id = "load_" + Date.now();
-  const div = document.createElement("div");
+  const container = document.getElementById('messages');
+  const id = 'load_' + Date.now();
+  const div = document.createElement('div');
   div.id = id;
-  div.className = "loading-indicator";
+  div.className = 'loading-indicator';
   div.innerHTML = '<div class="spinner"></div> Анализирую законодательство...';
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
@@ -932,102 +1047,93 @@ function removeLoading(id) {
 }
 
 function escapeHtml(t) {
-  const d = document.createElement("div");
+  const d = document.createElement('div');
   d.textContent = t;
   return d.innerHTML;
 }
 
 function clearChat() {
-  document.getElementById("messages").innerHTML = `
-    <div class="welcome-screen">
-      <h2>Добро пожаловать!</h2>
-      <p>Задайте вопрос по российскому законодательству.</p>
-      <div class="quick-buttons">
-        <button class="quick-btn" onclick="App.sendQuick('Как подать на алименты?')">Как подать на алименты?</button>
-        <button class="quick-btn" onclick="App.sendQuick('Права арендатора жилья')">Права арендатора</button>
-        <button class="quick-btn" onclick="App.sendQuick('Срок исковой давности')">Срок исковой давности</button>
-        <button class="quick-btn" onclick="App.sendQuick('Раздел имущества при разводе')">Раздел имущества</button>
-        <button class="quick-btn" onclick="App.sendQuick('Трудовой договор, обязательные условия')">Трудовой договор</button>
-      </div>
-    </div>`;
+  document.getElementById('messages').innerHTML = '<div class="welcome-screen" id="welcome"><h2>Добро пожаловать!</h2><p>Задайте вопрос по российскому законодательству.</p><div class="quick-buttons"><button class="quick-btn" onclick="sendQuick('Как подать на алименты?')">Как подать на алименты?</button><button class="quick-btn" onclick="sendQuick('Права арендатора жилья')">Права арендатора</button><button class="quick-btn" onclick="sendQuick('Срок исковой давности')">Срок исковой давности</button><button class="quick-btn" onclick="sendQuick('Раздел имущества при разводе')">Раздел имущества</button><button class="quick-btn" onclick="sendQuick('Трудовой договор, обязательные условия')">Трудовой договор</button></div></div>';
   chatHistory = [];
+  saveChatHistory();
   renderHistory();
 }
 
-// ==================== HISTORY ====================
+// ==================== ИСТОРИЯ ====================
 function addToHistory(text) {
-  chatHistory.unshift({ text, time: Date.now() });
+  chatHistory.unshift({ text: text, time: Date.now() });
   if (chatHistory.length > 50) chatHistory.pop();
+  saveChatHistory();
   renderHistory();
 }
 
 function renderHistory() {
-  const list = document.getElementById("historyList");
+  const list = document.getElementById('historyList');
   if (chatHistory.length === 0) {
     list.innerHTML = '<div class="empty-state">История пуста</div>';
     return;
   }
-  list.innerHTML = chatHistory.map(h =>
-    '<div class="history-item" data-query="' + encodeURIComponent(h.text) + '">' + escapeHtml(h.text) + '</div>'
-  ).join("");
-  list.querySelectorAll(".history-item").forEach(el => {
-    el.onclick = () => {
-      const q = decodeURIComponent(el.dataset.query);
-      sendQuick(q);
-    };
+  list.innerHTML = chatHistory.map((h, i) =>
+    '<div class="history-item" data-idx="' + i + '">' + escapeHtml(h.text) + '</div>'
+  ).join('');
+  list.querySelectorAll('.history-item').forEach(el => {
+    el.addEventListener('click', function() {
+      sendQuick(chatHistory[this.dataset.idx].text);
+    });
   });
 }
 
-// ==================== MODALS ====================
-function openModal(id) { document.getElementById(id).classList.add("active"); }
-function closeModal(id) { document.getElementById(id).classList.remove("active"); }
+// ==================== МОДАЛКИ ====================
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
 
 function openTeachModal() {
-  document.getElementById("teachQuestion").value = "";
-  document.getElementById("teachAnswer").value = "";
-  document.getElementById("teachQuick").value = "";
-  openModal("teachModal");
+  document.getElementById('teachQuestion').value = '';
+  document.getElementById('teachAnswer').value = '';
+  document.getElementById('teachQuick').value = '';
+  openModal('teachModal');
 }
 
-function saveTeach() {
-  const q = document.getElementById("teachQuestion").value.trim();
-  const a = document.getElementById("teachAnswer").value.trim();
-  const quick = document.getElementById("teachQuick").value.trim();
-  const type = document.getElementById("teachType").value;
-  const priority = parseInt(document.getElementById("teachPriority").value);
+async function saveTeach() {
+  const q = document.getElementById('teachQuestion').value.trim();
+  const a = document.getElementById('teachAnswer').value.trim();
+  const quick = document.getElementById('teachQuick').value.trim();
+  const type = document.getElementById('teachType').value;
+  const priority = parseInt(document.getElementById('teachPriority').value);
 
   if (!q || !a) {
-    showToast("Заполните вопрос и ответ");
+    showToast('Заполните вопрос и ответ');
     return;
   }
 
   const newBlock = {
-    id: "custom_" + Date.now(),
+    id: 'custom_' + Date.now(),
     title: q,
     content: a,
-    keywords: q.toLowerCase().split(/\s+/).filter(w => w.length > 3),
+    keywords: q.toLowerCase().split(/\s+/).filter(w => w.length > 2),
     type: type,
-    source: type === "law" ? "Пользовательский закон" : (type === "practice" ? "Пользовательская практика" : "База знаний"),
-    article: "",
+    source: type === 'law' ? 'Пользовательский закон' : (type === 'practice' ? 'Пользовательская практика' : 'База знаний'),
+    article: '',
     priority: priority,
     quickReply: quick || a.substring(0, 200)
   };
 
   KNOWLEDGE_BASE.push(newBlock);
   saveCustomKnowledge();
-  rebuildIndex();
-  closeModal("teachModal");
-  showToast("Блок знаний сохранён!");
+  await rebuildIndex();
+  closeModal('teachModal');
+  showToast('Блок знаний сохранён!');
 }
 
 function openKnowledgeModal() {
   renderKnowledgeList();
-  openModal("knowledgeModal");
+  openModal('knowledgeModal');
 }
 
 function renderKnowledgeList(filter) {
-  const list = document.getElementById("knowledgeList");
-  const f = (filter || "").toLowerCase();
+  filter = filter || '';
+  const list = document.getElementById('knowledgeList');
+  const f = filter.toLowerCase();
   const items = KNOWLEDGE_BASE.filter(k =>
     k.title.toLowerCase().includes(f) ||
     k.content.toLowerCase().includes(f) ||
@@ -1035,131 +1141,128 @@ function renderKnowledgeList(filter) {
   );
 
   list.innerHTML = items.map(k =>
-    '<div class="knowledge-item" data-id="' + k.id + '">' +
-    '<span class="priority-badge priority-' + k.priority + '"></span>' +
-    '<span class="k-title">' + escapeHtml(k.title) + '</span>' +
-    '<span class="k-type">' + escapeHtml(k.source) + '</span>' +
-    '</div>'
-  ).join("");
-
-  list.querySelectorAll(".knowledge-item").forEach(el => {
-    el.onclick = () => showDetail(el.dataset.id);
+    '<div class="knowledge-item" data-kid="' + k.id + '"><span class="priority-badge priority-' + k.priority + '"></span><span class="k-title">' + escapeHtml(k.title) + '</span><span class="k-type">' + k.source + '</span></div>'
+  ).join('');
+  list.querySelectorAll('.knowledge-item').forEach(el => {
+    el.addEventListener('click', function() {
+      showDetail(this.dataset.kid);
+    });
   });
 }
 
 function filterKnowledge() {
-  renderKnowledgeList(document.getElementById("kbSearch").value);
+  clearTimeout(kbFilterTimeout);
+  kbFilterTimeout = setTimeout(() => {
+    renderKnowledgeList(document.getElementById('kbSearch').value);
+  }, 200);
 }
 
 function showDetail(id) {
   const item = KNOWLEDGE_BASE.find(k => k.id === id);
   if (!item) return;
   currentDetailId = id;
-  document.getElementById("detailTitle").textContent = item.title;
-  const isDefault = id.startsWith("kz_");
-  document.getElementById("detailDelete").style.display = isDefault ? "none" : "inline-flex";
+  document.getElementById('detailTitle').textContent = item.title;
+  const isDefault = id.startsWith('kz_');
+  document.getElementById('detailDelete').style.display = isDefault ? 'none' : 'inline-flex';
 
-  document.getElementById("detailBody").innerHTML =
-    '<p><strong>Источник:</strong> ' + escapeHtml(item.source) + " " + escapeHtml(item.article || "") + '</p>' +
-    '<p><strong>Тип:</strong> ' + (item.type === "law" ? "Норма права" : (item.type === "practice" ? "Судебная практика" : "База знаний")) + '</p>' +
+  document.getElementById('detailBody').innerHTML =
+    '<p><strong>Источник:</strong> ' + escapeHtml(item.source) + ' ' + escapeHtml(item.article || '') + '</p>' +
+    '<p><strong>Тип:</strong> ' + (item.type === 'law' ? 'Норма права' : (item.type === 'practice' ? 'Судебная практика' : 'База знаний')) + '</p>' +
     '<p><strong>Приоритет:</strong> ' + item.priority + '</p>' +
     '<p><strong>Содержание:</strong></p>' +
-    '<p>' + escapeHtml(item.content).replace(/\n/g, "<br>") + '</p>' +
-    (item.quickReply ? '<p><strong>Быстрый ответ:</strong> ' + escapeHtml(item.quickReply) + '</p>' : "") +
-    '<p><strong>Ключевые слова:</strong> ' + item.keywords.join(", ") + '</p>';
-  openModal("detailModal");
+    '<p>' + formatMessage(item.content) + '</p>' +
+    (item.quickReply ? '<p><strong>Быстрый ответ:</strong> ' + escapeHtml(item.quickReply) + '</p>' : '') +
+    '<p><strong>Ключевые слова:</strong> ' + item.keywords.join(', ') + '</p>';
+  openModal('detailModal');
 }
 
-function deleteCurrentBlock() {
+async function deleteCurrentBlock() {
   if (!currentDetailId) return;
   KNOWLEDGE_BASE = KNOWLEDGE_BASE.filter(k => k.id !== currentDetailId);
   saveCustomKnowledge();
-  rebuildIndex();
-  closeModal("detailModal");
-  if (document.getElementById("knowledgeModal").classList.contains("active")) {
-    renderKnowledgeList(document.getElementById("kbSearch").value);
+  await rebuildIndex();
+  currentDetailId = null;
+  closeModal('detailModal');
+  if (document.getElementById('knowledgeModal').classList.contains('active')) {
+    renderKnowledgeList(document.getElementById('kbSearch').value);
   }
-  showToast("Блок удалён");
+  showToast('Блок удалён');
 }
 
-// ==================== EXPORT / IMPORT ====================
+// ==================== ЭКСПОРТ / ИМПОРТ ====================
 function exportKnowledge() {
   const data = {
     version: 1,
     exportedAt: new Date().toISOString(),
-    customBlocks: KNOWLEDGE_BASE.filter(k => !k.id.startsWith("kz_"))
+    customBlocks: KNOWLEDGE_BASE.filter(k => !k.id.startsWith('kz_'))
   };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
+  const a = document.createElement('a');
   a.href = url;
-  a.download = "legal_assistant_knowledge_" + new Date().toISOString().slice(0, 10) + ".json";
+  a.download = 'legal_assistant_knowledge_' + new Date().toISOString().slice(0, 10) + '.json';
   a.click();
   URL.revokeObjectURL(url);
-  showToast("База знаний экспортирована");
+  showToast('База знаний экспортирована');
 }
 
 function importKnowledge(input) {
   const file = input.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = async function(e) {
     try {
       const data = JSON.parse(e.target.result);
       if (data.customBlocks && Array.isArray(data.customBlocks)) {
-        const existing = KNOWLEDGE_BASE.filter(k => !k.id.startsWith("kz_"));
+        const existing = KNOWLEDGE_BASE.filter(k => !k.id.startsWith('kz_'));
         const merged = [...existing];
-        let added = 0;
+        let importedCount = 0;
         data.customBlocks.forEach(b => {
+          if (!b.title || !b.content) return;
           if (!merged.find(k => k.id === b.id)) {
-            b.id = "custom_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
+            b.id = 'custom_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
             merged.push(b);
-            added++;
+            importedCount++;
           }
         });
         KNOWLEDGE_BASE = [...DEFAULT_KNOWLEDGE, ...merged];
         saveCustomKnowledge();
-        rebuildIndex();
-        showToast("Импортировано " + added + " блоков");
+        await rebuildIndex();
+        showToast('Импортировано ' + importedCount + ' блоков');
       }
     } catch (err) {
-      showToast("Ошибка импорта: " + err.message);
+      showToast('Ошибка импорта: ' + err.message);
     }
   };
   reader.readAsText(file);
-  input.value = "";
+  input.value = '';
 }
 
-// ==================== UTILS ====================
+// ==================== УТИЛИТЫ ====================
 function showToast(msg) {
-  const t = document.createElement("div");
-  t.className = "toast";
+  const existing = document.querySelectorAll('.toast');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.style.bottom = (1.5 + existing.length * 3.5) + 'rem';
   t.textContent = msg;
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 3000);
 }
 
 function toggleSidebar() {
-  document.getElementById("sidebar").classList.toggle("open");
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebarBackdrop');
+  sidebar.classList.toggle('open');
+  backdrop.classList.toggle('active');
 }
 
-// Close modals on backdrop click
-window.onclick = e => {
-  if (e.target.classList.contains("modal-overlay")) {
-    e.target.classList.remove("active");
+window.onclick = function(e) {
+  if (e.target.classList.contains('modal-overlay')) {
+    e.target.classList.remove('active');
   }
 };
 
-// ==================== PUBLIC API ====================
-window.App = {
-  sendMessage, sendQuick, handleKey, clearChat,
-  openTeachModal, saveTeach,
-  openKnowledgeModal, filterKnowledge, showDetail, deleteCurrentBlock,
-  exportKnowledge, importKnowledge,
-  openModal, closeModal, toggleSidebar
-};
-
-// Start
+// Запуск
 init();
 </script>
 </body>
