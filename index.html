@@ -4,8 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Юридический ИИ-Ассистент</title>
+<script src="https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js"></script>
 <style>
-  /* (ваши стили — оставлены без изменений, они правильные) */
+  /* (ваши стили — оставлены без изменений) */
   :root {
     --bg: #0f172a;
     --surface: #1e293b;
@@ -418,7 +419,7 @@
   </div>
 </div>
 
-<!-- Модалки -->
+<!-- Модалки (без изменений) -->
 <div class="modal-overlay" id="teachModal">
   <div class="modal">
     <div class="modal-header">
@@ -496,19 +497,9 @@
   </div>
 </div>
 
-<script type="importmap">
-{
-  "imports": {
-    "@xenova/transformers": "https://esm.sh/@xenova/transformers@2.17.2"
-  }
-}
-</script>
-
-<script type="module">
-import { pipeline } from '@xenova/transformers';
-
+<script>
 // ============ БАЗОВАЯ БАЗА ЗНАНИЙ ============
-// (сокращённый вариант для примера, в вашем коде — все 20 блоков)
+// (здесь все ваши 20 блоков — для краткости оставлю первые три, но вы вставите полный массив)
 const DEFAULT_KNOWLEDGE = [
   {
     id: "kz_1",
@@ -543,10 +534,10 @@ const DEFAULT_KNOWLEDGE = [
     priority: 4,
     quickReply: "Алименты на 1 ребёнка — 25%, на 2 — 33%, на 3+ — 50% заработка. Взыскиваются через суд при отсутствии соглашения."
   }
-  // ... все остальные блоки (kz_4 .. kz_20) — вставьте их сюда (можно взять из предыдущего кода)
+  // ... (вставьте остальные 17 блоков с kz_4 по kz_20)
 ];
 
-// ============ СОСТОЯНИЕ ============
+// ============ ГЛОБАЛЬНОЕ СОСТОЯНИЕ ============
 let KNOWLEDGE_BASE = [];
 let embeddings = [];
 let embedder = null;
@@ -1014,7 +1005,7 @@ function setModelStatus(status) {
   const text = document.getElementById('modelText');
   dot.className = 'status-dot ' + status;
   if (status === 'loading') text.textContent = 'Загрузка модели...';
-  else if (status === 'ready') text.textContent = 'Модель готова (paraphrase-multilingual-MiniLM-L12-v2)';
+  else if (status === 'ready') text.textContent = 'Модель готова (all-MiniLM-L6-v2)';
   else if (status === 'error') text.textContent = 'Модель недоступна';
 }
 
@@ -1059,12 +1050,12 @@ async function init() {
   document.getElementById('kbSearch').addEventListener('input', filterKnowledge);
 
   try {
-    // ========== ГЛАВНОЕ ИСПРАВЛЕНИЕ ==========
-    // Добавлен cache_dir: null, чтобы модель загружалась с Hugging Face, а не из локальной папки.
-    embedder = await pipeline('feature-extraction', 'Xenova/paraphrase-multilingual-MiniLM-L12-v2', {
+    // Используем глобальный transformers из скрипта
+    const { pipeline } = window.transformers;
+    embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
       quantized: true,
       use_fp16: false,
-      cache_dir: null,
+      cache_dir: null,        // <-- ОТКЛЮЧАЕМ ЛОКАЛЬНЫЙ КЕШ
       revision: 'main'
     });
     setModelStatus('ready');
