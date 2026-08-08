@@ -736,9 +736,48 @@ let currentDetailId = null;
 let isProcessing = false;
 let kbFilterTimeout = null;
 
+// ==================== ЗАГРУЗКА ВНЕШНИХ БЛОКОВ ====================
+async function loadExternalBlocks() {
+  try {
+    const manifestRes = await fetch('blocks/list.json');
+    if (!manifestRes.ok) {
+      console.log('Файл blocks/list.json не найден — внешние блоки пропущены');
+      return;
+    }
+    const fileList = await manifestRes.json();
+    if (!Array.isArray(fileList)) return;
+
+    let loaded = 0;
+    for (const fileName of fileList) {
+      try {
+        const resp = await fetch('blocks/' + fileName);
+        if (!resp.ok) continue;
+        const data = await resp.json();
+        const blocks = Array.isArray(data) ? data : [data];
+        for (const block of blocks) {
+          if (!block.id || !block.title || !block.content) continue;
+          if (!KNOWLEDGE_BASE.find(k => k.id === block.id)) {
+            block.priority = block.priority || 4;
+            block.type = block.type || 'knowledge';
+            block.source = block.source || 'Внешний блок (' + fileName + ')';
+            block.keywords = block.keywords || [];
+            KNOWLEDGE_BASE.push(block);
+            loaded++;
+          }
+        }
+      } catch (err) { /* пропускаем проблемный файл */ }
+    }
+    console.log('Загружено ' + loaded + ' внешних блоков');
+    updateKbCount();
+  } catch (e) {
+    console.warn('Ошибка загрузки внешних блоков:', e);
+  }
+}
+
 // ==================== ИНИЦИАЛИЗАЦИЯ ====================
 async function init() {
   loadKnowledge();
+  await loadExternalBlocks();
   loadChatHistory();
   updateKbCount();
   renderHistory();
@@ -753,7 +792,7 @@ async function init() {
     const { pipeline } = window.transformers;
     embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
       quantized: true,
-      revision: 'main'
+      use_fp16: false
     });
     setModelStatus('ready');
     await rebuildIndex();
@@ -893,7 +932,7 @@ async function search(query) {
     if (existing) {
       existing.score += kwScore;
     } else {
-      results.push({ item, score: kwScore, match: 'keyword' });
+      results.push({ item: item, score: kwScore, match: 'keyword' });
     }
   }
 
@@ -927,9 +966,7 @@ function buildAnswer(results, query) {
     if (idx === 0) {
       answer += item.content;
     } else {
-      answer += "
-
-Также актуально: " + item.title + " — " + item.content.substring(0, 200) + "...";
+      answer += "\n\nТакже актуально: " + item.title + " — " + item.content.substring(0, 200) + "...";
     }
     if (!uniqueSources.find(s => s.id === item.id)) {
       uniqueSources.push(item);
@@ -994,8 +1031,7 @@ function handleKey(e) {
 function formatMessage(text) {
   let html = escapeHtml(text);
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/
-/g, '<br>');
+  html = html.replace(/\n/g, '<br>');
   html = html.replace(/^(•|\-|[0-9]+\.)\s+(.+)$/gm, '<li>$2</li>');
   if (html.includes('<li>')) {
     html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
@@ -1053,7 +1089,7 @@ function escapeHtml(t) {
 }
 
 function clearChat() {
-  document.getElementById('messages').innerHTML = '<div class="welcome-screen" id="welcome"><h2>Добро пожаловать!</h2><p>Задайте вопрос по российскому законодательству.</p><div class="quick-buttons"><button class="quick-btn" onclick="sendQuick('Как подать на алименты?')">Как подать на алименты?</button><button class="quick-btn" onclick="sendQuick('Права арендатора жилья')">Права арендатора</button><button class="quick-btn" onclick="sendQuick('Срок исковой давности')">Срок исковой давности</button><button class="quick-btn" onclick="sendQuick('Раздел имущества при разводе')">Раздел имущества</button><button class="quick-btn" onclick="sendQuick('Трудовой договор, обязательные условия')">Трудовой договор</button></div></div>';
+  document.getElementById('messages').innerHTML = '<div class="welcome-screen" id="welcome"><h2>Добро пожаловать!</h2><p>Задайте вопрос по российскому законодательству.</p><div class="quick-buttons"><button class="quick-btn" onclick="sendQuick(\'Как подать на алименты?\')">Как подать на алименты?</button><button class="quick-btn" onclick="sendQuick(\'Права арендатора жилья\')">Права арендатора</button><button class="quick-btn" onclick="sendQuick(\'Срок исковой давности\')">Срок исковой давности</button><button class="quick-btn" onclick="sendQuick(\'Раздел имущества при разводе\')">Раздел имущества</button><button class="quick-btn" onclick="sendQuick(\'Трудовой договор, обязательные условия\')">Трудовой договор</button></div></div>';
   chatHistory = [];
   saveChatHistory();
   renderHistory();
