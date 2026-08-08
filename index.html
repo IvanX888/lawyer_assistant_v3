@@ -755,7 +755,17 @@ function renderHistory() {
 }
 
 window.clearChat = function() {
-  document.getElementById('messages').innerHTML = '<div class="welcome-screen" id="welcome"><h2>Добро пожаловать!</h2><p>Задайте вопрос по российскому законодательству. Ассистент найдёт релевантные нормы права и сформирует ответ с указанием источников.</p><div class="quick-buttons"><button class="quick-btn" onclick="window.sendQuick('Как подать на алименты?')">Как подать на алименты?</button><button class="quick-btn" onclick="window.sendQuick('Права арендатора жилья')">Права арендатора</button><button class="quick-btn" onclick="window.sendQuick('Срок исковой давности')">Срок исковой давности</button><button class="quick-btn" onclick="window.sendQuick('Раздел имущества при разводе')">Раздел имущества</button><button class="quick-btn" onclick="window.sendQuick('Трудовой договор, обязательные условия')">Трудовой договор</button></div></div>';
+  document.getElementById('messages').innerHTML = `<div class="welcome-screen" id="welcome">
+    <h2>Добро пожаловать!</h2>
+    <p>Задайте вопрос по российскому законодательству. Ассистент найдёт релевантные нормы права и сформирует ответ с указанием источников.</p>
+    <div class="quick-buttons">
+      <button class="quick-btn" onclick="window.sendQuick('Как подать на алименты?')">Как подать на алименты?</button>
+      <button class="quick-btn" onclick="window.sendQuick('Права арендатора жилья')">Права арендатора</button>
+      <button class="quick-btn" onclick="window.sendQuick('Срок исковой давности')">Срок исковой давности</button>
+      <button class="quick-btn" onclick="window.sendQuick('Раздел имущества при разводе')">Раздел имущества</button>
+      <button class="quick-btn" onclick="window.sendQuick('Трудовой договор, обязательные условия')">Трудовой договор</button>
+    </div>
+  </div>`;
   chatHistory = [];
   saveChatHistory();
   renderHistory();
