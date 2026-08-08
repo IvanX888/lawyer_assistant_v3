@@ -203,7 +203,7 @@ function nl2br(text) {
 }
 
 // ===== LAWS DATABASE (Расширенная) =====
-const LAWS = {
+var LAWS = {
   "sk": {
     "name": "СК РФ",
     "articles": [
@@ -2831,7 +2831,7 @@ const LAWS = {
   }
 };
 
-const KNOWLEDGE_BASE = [
+var KNOWLEDGE_BASE = [
   {
     "keywords": [
       "материнский капитал",
@@ -3852,56 +3852,6 @@ function cancelQuickReply(btn) {
 }
 
 // ===== IMPORT / EXPORT KNOWLEDGE BASE =====
-function showExportModal() {
-  var data = { laws: LAWS, knowledge: KNOWLEDGE_BASE, exported: new Date().toISOString() };
-  var json = JSON.stringify(data, null, 2);
-  showModal('📤 Экспорт базы знаний', 'Скопируйте JSON или скачайте файл:', json, 'Скачать файл', function() {
-    var blob = new Blob([json], {type: 'application/json;charset=utf-8'});
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url; a.download = 'юрист_база_' + new Date().toISOString().slice(0,10) + '.json';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showToast('Файл скачан');
-  });
-}
-function showImportModal() {
-  showModal('📥 Импорт базы знаний', 'Вставьте JSON с базой знаний (поля: laws, knowledge). Внимание: текущая база будет заменена.', '', 'Импортировать', function() {
-    var ta = document.getElementById('modalTextarea');
-    var err = document.getElementById('modalError');
-    try {
-      var data = JSON.parse(ta.value.trim());
-      if (!data.laws || !data.knowledge) { err.textContent = 'JSON должен содержать поля laws и knowledge'; return; }
-      // Валидация структуры
-      var lawCodes = Object.keys(data.laws);
-      if (!lawCodes.length) { err.textContent = 'Поле laws пустое'; return; }
-      for (var i = 0; i < lawCodes.length; i++) {
-        var lc = data.laws[lawCodes[i]];
-        if (!lc.name || !Array.isArray(lc.articles)) { err.textContent = 'Неверная структура laws.' + lawCodes[i]; return; }
-        for (var j = 0; j < lc.articles.length; j++) {
-          if (!lc.articles[j].n || !lc.articles[j].t || !lc.articles[j].txt) { err.textContent = 'Неверная структура статьи в ' + lawCodes[i]; return; }
-        }
-      }
-      if (!Array.isArray(data.knowledge) || !data.knowledge.length) { err.textContent = 'Поле knowledge пустое или не массив'; return; }
-      for (var i = 0; i < data.knowledge.length; i++) {
-        var k = data.knowledge[i];
-        if (!k.keywords || !Array.isArray(k.keywords) || !k.title || !k.answer || !k.laws || !k.steps || !k.docs || !k.court || !k.term || !k.quickReply || !k.practice) {
-          err.textContent = 'Неверная структура knowledge[' + i + ']'; return;
-        }
-      }
-      if (confirm('Заменить текущую базу? Это действие необратимо.\n\nКодексов: ' + lawCodes.length + '\nТем: ' + data.knowledge.length)) {
-        LAWS = data.laws;
-        KNOWLEDGE_BASE = data.knowledge;
-        showToast('База импортирована: ' + lawCodes.length + ' кодексов, ' + KNOWLEDGE_BASE.length + ' тем');
-        hideModal();
-      }
-    } catch(e) {
-      err.textContent = 'Ошибка JSON: ' + e.message;
-    }
-  });
-}
-
-// ===== IMPORT / EXPORT HISTORY & NOTES =====
 function showExportAllModal() {
   var data = {
     history: historyData,
@@ -4008,36 +3958,59 @@ function showImportModal() {
   showModal('📥 Импорт базы знаний', 'Вставьте JSON с базой знаний (поля: laws, knowledge). Внимание: текущая база будет заменена.', '', 'Импортировать', function() {
     var ta = document.getElementById('modalTextarea');
     var err = document.getElementById('modalError');
+    err.textContent = '';
     try {
-      var data = JSON.parse(ta.value.trim());
-      if (!data.laws || !data.knowledge) { err.textContent = 'JSON должен содержать поля laws и knowledge'; return; }
-      if (confirm('Заменить текущую базу? Это действие необратимо.')) {
-        // Обновляем глобальные переменные
+      var raw = ta.value.trim();
+      if (!raw) { err.textContent = 'Вставьте JSON в поле'; return; }
+      var data = JSON.parse(raw);
+      if (typeof data !== 'object' || data === null) { err.textContent = 'JSON должен быть объектом'; return; }
+      if (!data.laws || typeof data.laws !== 'object') { err.textContent = 'Отсутствует поле laws (объект кодексов)'; return; }
+      if (!data.knowledge || !Array.isArray(data.knowledge)) { err.textContent = 'Отсутствует поле knowledge (массив тем)'; return; }
+      var lawCodes = Object.keys(data.laws);
+      if (!lawCodes.length) { err.textContent = 'Поле laws пустое'; return; }
+      for (var i = 0; i < lawCodes.length; i++) {
+        var lc = data.laws[lawCodes[i]];
+        if (!lc || typeof lc !== 'object') { err.textContent = 'Неверная структура laws.' + lawCodes[i]; return; }
+        if (!lc.name || typeof lc.name !== 'string') { err.textContent = 'У laws.' + lawCodes[i] + ' нет name'; return; }
+        if (!Array.isArray(lc.articles)) { err.textContent = 'У laws.' + lawCodes[i] + ' нет articles (массив)'; return; }
+        for (var j = 0; j < lc.articles.length; j++) {
+          var art = lc.articles[j];
+          if (!art || typeof art !== 'object') { err.textContent = 'Неверная структура статьи ' + j + ' в ' + lawCodes[i]; return; }
+          if (!art.n || !art.t || !art.txt) { err.textContent = 'Статья ' + j + ' в ' + lawCodes[i] + ' должна иметь n, t, txt'; return; }
+        }
+      }
+      if (!data.knowledge.length) { err.textContent = 'Поле knowledge пустое'; return; }
+      for (var i = 0; i < data.knowledge.length; i++) {
+        var k = data.knowledge[i];
+        if (!k || typeof k !== 'object') { err.textContent = 'Неверная структура knowledge[' + i + ']'; return; }
+        if (!Array.isArray(k.keywords)) { err.textContent = 'knowledge[' + i + '] нет keywords (массив)'; return; }
+        if (!k.title || typeof k.title !== 'string') { err.textContent = 'knowledge[' + i + '] нет title'; return; }
+        if (!k.answer || typeof k.answer !== 'string') { err.textContent = 'knowledge[' + i + '] нет answer'; return; }
+        if (!Array.isArray(k.laws)) { err.textContent = 'knowledge[' + i + '] нет laws (массив)'; return; }
+        if (!Array.isArray(k.steps)) { err.textContent = 'knowledge[' + i + '] нет steps (массив)'; return; }
+        if (!k.docs || typeof k.docs !== 'string') { err.textContent = 'knowledge[' + i + '] нет docs'; return; }
+        if (!k.court || typeof k.court !== 'string') { err.textContent = 'knowledge[' + i + '] нет court'; return; }
+        if (!k.term || typeof k.term !== 'string') { err.textContent = 'knowledge[' + i + '] нет term'; return; }
+        if (!k.quickReply || typeof k.quickReply !== 'string') { err.textContent = 'knowledge[' + i + '] нет quickReply'; return; }
+        if (!Array.isArray(k.practice)) { err.textContent = 'knowledge[' + i + '] нет practice (массив)'; return; }
+        for (var j = 0; j < k.practice.length; j++) {
+          var p = k.practice[j];
+          if (!p || typeof p !== 'object') { err.textContent = 'Неверная структура practice[' + j + '] в knowledge[' + i + ']'; return; }
+          if (!p.title || !p.facts || !p.ruling || !p.favor || !p.source) {
+            err.textContent = 'practice[' + j + '] в knowledge[' + i + '] должен иметь title, facts, ruling, favor, source'; return;
+          }
+        }
+      }
+      if (confirm('Заменить текущую базу? Это действие необратимо.\n\nКодексов: ' + lawCodes.length + '\nТем: ' + data.knowledge.length)) {
         LAWS = data.laws;
         KNOWLEDGE_BASE = data.knowledge;
-        showToast('База импортирована: ' + Object.keys(LAWS).length + ' кодексов, ' + KNOWLEDGE_BASE.length + ' тем');
+        showToast('База импортирована: ' + lawCodes.length + ' кодексов, ' + KNOWLEDGE_BASE.length + ' тем');
         hideModal();
       }
     } catch(e) {
       err.textContent = 'Ошибка JSON: ' + e.message;
     }
   });
-}
-function showModal(title, desc, text, actionText, actionFn) {
-  document.getElementById('modalTitle').textContent = title;
-  document.getElementById('modalDesc').textContent = desc;
-  document.getElementById('modalTextarea').value = text;
-  document.getElementById('modalError').textContent = '';
-  var btn = document.getElementById('modalActionBtn');
-  btn.textContent = actionText;
-  btn.onclick = actionFn;
-  document.getElementById('modalOverlay').classList.add('show');
-}
-function hideModal() {
-  document.getElementById('modalOverlay').classList.remove('show');
-}
-function modalAction() {
-  // placeholder, переопределяется в showModal
 }
 var currentHistoryId = null;
 var historyData = [];
