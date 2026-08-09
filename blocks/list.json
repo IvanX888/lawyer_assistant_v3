@@ -1,1 +1,11 @@
-["family.json"]
+[
+  "family.json",
+  "family_sk_general.json",
+  "family_sk_marriage.json",
+  "family_sk_spouses.json",
+  "family_sk_children.json",
+  "family_sk_alimony.json",
+  "family_sk_payments.json",
+  "family_sk_military.json",
+  "family_sk_protection.json"
+]
