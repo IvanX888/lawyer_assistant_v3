@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Карманный помощник юриста: СК РФ, ТК РФ, Закон о защите прав потребителей, Конституция РФ, ГК РФ. Умный поиск с пониманием ошибок. Работает офлайн.">
+<meta name="theme-color" content="#0f2740">
+<title>Юрист в кармане v4 — законы РФ с умным поиском</title>
+<style>
+  :root{
+    --bg:#0d1b2a; --bg2:#0f2740; --card:#132b45; --card2:#173555;
+    --text:#e8eef5; --muted:#9db2c8; --accent:#4da3ff; --accent2:#ffd166; --ok:#52d273;
+    --radius:14px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);
+    color:var(--text); font:16px/1.55 -apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    min-height:100vh;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:20px 16px 60px;}
+  header{padding:28px 0 8px;text-align:center;}
+  .logo{font-size:15px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);}
+  h1{font-size:26px;margin:6px 0 4px;}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 6px;}
+  #meta{color:var(--muted);font-size:12px;}
+  form#ask{display:flex;gap:8px;margin:20px 0 10px;}
+  #q{
+    flex:1;background:var(--card);border:1px solid #23486e;color:var(--text);
+    border-radius:999px;padding:14px 18px;font-size:16px;outline:none;min-width:0;
+  }
+  #q:focus{border-color:var(--accent);}
+  #mic{
+    width:52px;height:52px;border-radius:50%;border:1px solid #23486e;background:var(--card);
+    color:var(--text);font-size:22px;cursor:pointer;flex:none;transition:.2s;
+  }
+  #mic.on{background:#b3261e;border-color:#ff6b61;transform:scale(1.08);}
+  #go{
+    width:52px;height:52px;border-radius:50%;border:none;background:var(--accent);color:#06121f;
+    font-size:20px;cursor:pointer;flex:none;font-weight:700;
+  }
+  #hints{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 4px;}
+  .hint-btn{
+    background:transparent;border:1px dashed #2c527c;color:var(--muted);border-radius:999px;
+    padding:7px 12px;font-size:13px;cursor:pointer;text-align:left;
+  }
+  .hint-btn:active{background:var(--card);}
+  #results{margin-top:16px;}
+  .card{background:var(--card);border:1px solid #1d3a5c;border-radius:var(--radius);padding:16px;margin:12px 0;}
+  .scenario{border-color:var(--accent2);}
+  .sc-badge{display:inline-block;background:var(--accent2);color:#221a00;font-size:11px;font-weight:700;
+    padding:3px 10px;border-radius:999px;letter-spacing:.05em;text-transform:uppercase;margin-bottom:8px;}
+  .scenario h2{margin:4px 0 10px;font-size:19px;}
+  .sc-body ol,.sc-body ul{padding-left:20px;margin:8px 0;}
+  .sc-body li{margin:6px 0;}
+  .sc-body b{color:var(--accent2);}
+  .sc-norms{margin-top:12px;font-size:13px;color:var(--muted);}
+  .sc-norms a{color:var(--accent);text-decoration:none;margin-right:4px;}
+  .sc-disc{margin-top:10px;font-size:12px;color:var(--muted);border-top:1px solid #1d3a5c;padding-top:8px;}
+  .res-title{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.1em;margin:18px 0 4px;}
+  .art-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px;}
+  .art-doc{background:#0d1f33;color:var(--accent);font-size:12px;padding:3px 9px;border-radius:6px;}
+  .art-num{background:var(--accent);color:#06121f;font-size:12px;font-weight:700;padding:3px 9px;border-radius:6px;}
+  .art-name{color:var(--muted);font-size:13px;}
+  .art-gist{font-size:14.5px;}
+  .art-gist b{color:var(--accent2);}
+  details{margin-top:8px;}
+  summary{cursor:pointer;color:var(--accent);font-size:13px;}
+  .art-text{margin-top:8px;font-size:13.5px;color:#cfdcec;background:#0d1f33;padding:12px;border-radius:8px;white-space:pre-wrap;}
+  .art-src{margin-top:10px;font-size:12px;}
+  .art-src a{color:var(--muted);}
+  .hint{color:var(--muted);text-align:center;padding:16px;}
+  .empty{color:var(--muted);}
+  h3.docs{margin:34px 0 4px;font-size:15px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;}
+  .doc-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 16px;}
+  .doc-name{font-weight:600;font-size:15px;}
+  .doc-meta{color:var(--muted);font-size:12px;text-align:right;}
+  .doc-meta a{color:var(--accent);text-decoration:none;}
+  footer{margin-top:40px;color:var(--muted);font-size:12px;text-align:center;line-height:1.7;}
+  footer a{color:var(--accent);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">IvanX888 · lawyer_assistant_v4</div>
+    <h1>⚖️ Юрист в кармане</h1>
+    <p class="sub">Спросите своими словами — даже с ошибками. Отвечаем по СК, ТК, ЗоЗПП, ГК и Конституции РФ.</p>
+    <div id="meta"></div>
+  </header>
+
+  <form id="ask" autocomplete="off">
+    <input id="q" type="text" placeholder="Например: как развестись если я на СВО?" aria-label="Вопрос">
+    <button id="mic" type="button" title="Голосовой ввод" aria-label="Голосовой ввод">🎤</button>
+    <button id="go" type="submit" aria-label="Найти">→</button>
+  </form>
+
+  <div id="hints"></div>
+  <div id="results"></div>
+
+  <h3 class="docs">📚 Библиотека документов</h3>
+  <div id="docs"></div>
+
+  <footer>
+    Информация справочная и не заменяет консультацию юриста.<br>
+    Актуальные редакции — на официальном портале <a href="http://pravo.gov.ru" target="_blank" rel="noopener">pravo.gov.ru</a>.<br>
+    Работает офлайн · данные хранятся только на вашем устройстве
+  </footer>
+</div>
+<script src="library.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
